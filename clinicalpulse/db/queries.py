@@ -52,3 +52,69 @@ SELECT
     (SELECT json_agg(row_to_json(top_dx)) FROM top_dx)         AS top_diagnoses
 FROM admissions;
 """
+
+LAB_TIMESERIES = """
+WITH cohort AS (
+    SELECT unnest(CAST(:hadm_ids AS int[])) AS hadm_id
+),
+item AS (
+    SELECT itemid FROM mimiciv_hosp.d_labitems
+    WHERE LOWER(label) = LOWER(:lab_name)
+    LIMIT 1
+)
+SELECT
+    DATE_TRUNC('day', l.charttime)          AS day,
+    PERCENTILE_CONT(0.5) WITHIN GROUP
+        (ORDER BY l.valuenum)               AS median_value,
+    COUNT(*)                                AS sample_count,
+    MIN(l.valuenum)                         AS min_value,
+    MAX(l.valuenum)                         AS max_value,
+    l.valueuom                              AS unit
+FROM mimiciv_hosp.labevents l
+JOIN cohort c ON c.hadm_id = l.hadm_id
+JOIN item i ON i.itemid = l.itemid
+WHERE l.valuenum IS NOT NULL
+GROUP BY DATE_TRUNC('day', l.charttime), l.valueuom
+ORDER BY day
+LIMIT :days;
+"""
+
+LAB_LOOKUP = """
+SELECT itemid, label, ref_range_lower, ref_range_upper
+FROM mimiciv_hosp.d_labitems
+LEFT JOIN LATERAL (
+    SELECT ref_range_lower, ref_range_upper
+    FROM mimiciv_hosp.labevents
+    WHERE itemid = d_labitems.itemid
+      AND ref_range_lower IS NOT NULL
+    LIMIT 1
+) r ON true
+WHERE LOWER(label) = LOWER(:lab_name)
+LIMIT 1;
+"""
+
+PATIENT_TIMELINE = """
+SELECT
+    a.hadm_id,
+    a.admittime,
+    a.dischtime,
+    a.admission_type,
+    a.discharge_location,
+    a.hospital_expire_flag,
+    EXTRACT(EPOCH FROM (a.dischtime - a.admittime)) / 3600.0 AS los_hours,
+    json_agg(
+        json_build_object(
+            'seq_num',   d.seq_num,
+            'icd_code',  d.icd_code,
+            'long_title', di.long_title
+        ) ORDER BY d.seq_num
+    ) AS diagnoses
+FROM mimiciv_hosp.admissions a
+LEFT JOIN mimiciv_hosp.diagnoses_icd d ON d.hadm_id = a.hadm_id
+LEFT JOIN mimiciv_hosp.d_icd_diagnoses di
+    ON di.icd_code = d.icd_code AND di.icd_version = d.icd_version
+WHERE a.subject_id = :subject_id
+GROUP BY a.hadm_id, a.admittime, a.dischtime,
+         a.admission_type, a.discharge_location, a.hospital_expire_flag
+ORDER BY a.admittime;
+"""
