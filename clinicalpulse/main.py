@@ -5,7 +5,7 @@ import structlog
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
-from clinicalpulse.api.routes import cohort, health
+from clinicalpulse.api.routes import cohort, health, labs, patient
 from clinicalpulse.core.exceptions import (
     CohortNotFoundError,
     LabNotFoundError,
@@ -80,3 +80,5 @@ async def logging_middleware(request: Request, call_next):
 
 app.include_router(health.router)
 app.include_router(cohort.router)
+app.include_router(labs.router)
+app.include_router(patient.router)
