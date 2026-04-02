@@ -18,6 +18,4 @@ async def lab_timeseries(
     db: AsyncSession = Depends(get_db),
     redis_client: redis.Redis = Depends(get_redis),
 ):
-    return await get_lab_timeseries(
-        db, redis_client, cohort_id, lab_name, days, request=request
-    )
+    return await get_lab_timeseries(db, redis_client, cohort_id, lab_name, days, request=request)
