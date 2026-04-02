@@ -68,13 +68,21 @@ async def patient_not_found_handler(request: Request, exc: PatientNotFoundError)
 @app.middleware("http")
 async def logging_middleware(request: Request, call_next):
     start = time.time()
-    structlog.contextvars.clear_contextvars()
-    structlog.contextvars.bind_contextvars(method=request.method, path=request.url.path)
+    request.state.cohort_id = None
+    request.state.cache_hit = None
 
     response = await call_next(request)
 
     duration_ms = round((time.time() - start) * 1000, 1)
-    logger.info("request", duration_ms=duration_ms, status_code=response.status_code)
+    logger.info(
+        "request",
+        method=request.method,
+        path=request.url.path,
+        duration_ms=duration_ms,
+        status_code=response.status_code,
+        cohort_id=request.state.cohort_id,
+        cache_hit=request.state.cache_hit,
+    )
     return response
 
 

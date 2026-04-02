@@ -1,6 +1,7 @@
 import json
 
 import redis.asyncio as redis
+from fastapi import Request
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -14,11 +15,16 @@ async def get_lab_timeseries(
     cohort_id: str,
     lab_name: str,
     days: int = 30,
+    *,
+    request: Request,
 ) -> dict:
+    request.state.cohort_id = cohort_id
     raw = await redis_client.get(f"cohort:{cohort_id}")
     if raw is None:
+        request.state.cache_hit = False
         raise CohortNotFoundError(cohort_id)
 
+    request.state.cache_hit = True
     hadm_ids = json.loads(raw)
 
     lookup = await db.execute(text(LAB_LOOKUP), {"lab_name": lab_name})

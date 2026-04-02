@@ -1,3 +1,6 @@
+import logging
+import sys
+
 import structlog
 
 
@@ -10,6 +13,9 @@ def setup_logging() -> None:
             structlog.processors.JSONRenderer(),
         ],
         wrapper_class=structlog.stdlib.BoundLogger,
-        logger_factory=structlog.stdlib.LoggerFactory(),
+        logger_factory=structlog.PrintLoggerFactory(file=sys.stderr),
         cache_logger_on_first_use=True,
     )
+
+    # Quiet uvicorn's default loggers so our structlog output is the only log
+    logging.getLogger("uvicorn.access").disabled = True
