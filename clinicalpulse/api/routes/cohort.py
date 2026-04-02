@@ -1,5 +1,5 @@
 import redis.asyncio as redis
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from clinicalpulse.api.deps import get_db, get_redis
@@ -16,12 +16,14 @@ router = APIRouter(prefix="/cohort")
 @router.post("/define", response_model=CohortDefineResponse)
 async def cohort_define(
     body: CohortDefineRequest,
+    request: Request,
     db: AsyncSession = Depends(get_db),
     redis_client: redis.Redis = Depends(get_redis),
 ):
     return await define_cohort(
         db,
         redis_client,
+        request=request,
         age_min=body.age_min,
         age_max=body.age_max,
         gender=body.gender,
@@ -34,7 +36,8 @@ async def cohort_define(
 @router.get("/{cohort_id}/metrics", response_model=CohortMetricsResponse)
 async def cohort_metrics(
     cohort_id: str,
+    request: Request,
     db: AsyncSession = Depends(get_db),
     redis_client: redis.Redis = Depends(get_redis),
 ):
-    return await get_cohort_metrics(db, redis_client, cohort_id)
+    return await get_cohort_metrics(db, redis_client, cohort_id, request=request)

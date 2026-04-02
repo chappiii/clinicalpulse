@@ -2,6 +2,7 @@ import json
 import uuid
 
 import redis.asyncio as redis
+from fastapi import Request
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -14,6 +15,7 @@ async def define_cohort(
     db: AsyncSession,
     redis_client: redis.Redis,
     *,
+    request: Request,
     age_min: int | None,
     age_max: int | None,
     gender: str | None,
@@ -38,6 +40,8 @@ async def define_cohort(
     subject_ids = {row.subject_id for row in rows}
 
     cohort_id = str(uuid.uuid4())
+    request.state.cohort_id = cohort_id
+    request.state.cache_hit = False
     await redis_client.set(
         f"cohort:{cohort_id}",
         json.dumps(hadm_ids),
@@ -69,11 +73,16 @@ async def get_cohort_metrics(
     db: AsyncSession,
     redis_client: redis.Redis,
     cohort_id: str,
+    *,
+    request: Request,
 ) -> dict:
+    request.state.cohort_id = cohort_id
     raw = await redis_client.get(f"cohort:{cohort_id}")
     if raw is None:
+        request.state.cache_hit = False
         raise CohortNotFoundError(cohort_id)
 
+    request.state.cache_hit = True
     hadm_ids = json.loads(raw)
 
     result = await db.execute(text(COHORT_METRICS), {"hadm_ids": hadm_ids})
