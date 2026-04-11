@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from clinicalpulse.core.config import settings
 from clinicalpulse.core.exceptions import CohortNotFoundError
 from clinicalpulse.db.queries import COHORT_DEFINE, COHORT_METRICS
+from clinicalpulse.schemas.cohort import FiltersApplied
 
 
 async def define_cohort(
@@ -48,17 +49,14 @@ async def define_cohort(
         ex=settings.cohort_ttl_seconds,
     )
 
-    filters_applied = {}
-    for key, val in [
-        ("age_min", age_min),
-        ("age_max", age_max),
-        ("gender", gender),
-        ("admission_type", admission_type),
-        ("icd_codes", icd_codes),
-        ("icd_version", icd_version),
-    ]:
-        if val is not None:
-            filters_applied[key] = val
+    filters_applied = FiltersApplied(
+        age_min=age_min,
+        age_max=age_max,
+        gender=gender,
+        admission_type=admission_type,
+        icd_codes=icd_codes,
+        icd_version=icd_version,
+    )
 
     return {
         "cohort_id": cohort_id,

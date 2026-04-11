@@ -1,20 +1,31 @@
+from typing import Literal
+
 from pydantic import BaseModel
 
 
 class CohortDefineRequest(BaseModel):
     age_min: int | None = None
     age_max: int | None = None
-    gender: str | None = None
+    gender: Literal["M", "F"] | None = None
     admission_type: str | None = None
     icd_codes: list[str] | None = None
-    icd_version: int | None = None
+    icd_version: Literal[9, 10] | None = None
+
+
+class FiltersApplied(BaseModel):
+    age_min: int | None = None
+    age_max: int | None = None
+    gender: Literal["M", "F"] | None = None
+    admission_type: str | None = None
+    icd_codes: list[str] | None = None
+    icd_version: Literal[9, 10] | None = None
 
 
 class CohortDefineResponse(BaseModel):
     cohort_id: str
     patient_count: int
     admission_count: int
-    filters_applied: dict
+    filters_applied: FiltersApplied
     expires_in_seconds: int
 
 
