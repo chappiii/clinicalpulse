@@ -61,22 +61,28 @@ item AS (
     SELECT itemid FROM mimiciv_hosp.d_labitems
     WHERE LOWER(label) = LOWER(:lab_name)
     LIMIT 1
+),
+daily AS (
+    SELECT
+        DATE_TRUNC('day', l.charttime)          AS day,
+        PERCENTILE_CONT(0.5) WITHIN GROUP
+            (ORDER BY l.valuenum)               AS median_value,
+        COUNT(*)                                AS sample_count,
+        MIN(l.valuenum)                         AS min_value,
+        MAX(l.valuenum)                         AS max_value,
+        l.valueuom                              AS unit
+    FROM mimiciv_hosp.labevents l
+    JOIN cohort c ON c.hadm_id = l.hadm_id
+    JOIN item i ON i.itemid = l.itemid
+    WHERE l.valuenum IS NOT NULL
+    GROUP BY DATE_TRUNC('day', l.charttime), l.valueuom
+),
+recent AS (
+    SELECT * FROM daily
+    ORDER BY day DESC
+    LIMIT :days
 )
-SELECT
-    DATE_TRUNC('day', l.charttime)          AS day,
-    PERCENTILE_CONT(0.5) WITHIN GROUP
-        (ORDER BY l.valuenum)               AS median_value,
-    COUNT(*)                                AS sample_count,
-    MIN(l.valuenum)                         AS min_value,
-    MAX(l.valuenum)                         AS max_value,
-    l.valueuom                              AS unit
-FROM mimiciv_hosp.labevents l
-JOIN cohort c ON c.hadm_id = l.hadm_id
-JOIN item i ON i.itemid = l.itemid
-WHERE l.valuenum IS NOT NULL
-GROUP BY DATE_TRUNC('day', l.charttime), l.valueuom
-ORDER BY day
-LIMIT :days;
+SELECT * FROM recent ORDER BY day ASC;
 """
 
 LAB_LOOKUP = """
