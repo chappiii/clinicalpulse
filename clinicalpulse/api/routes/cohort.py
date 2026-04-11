@@ -13,7 +13,7 @@ from clinicalpulse.services.cohort_service import define_cohort, get_cohort_metr
 router = APIRouter(prefix="/cohort")
 
 
-@router.post("/define", response_model=CohortDefineResponse)
+@router.post("/define", response_model=CohortDefineResponse, response_model_exclude_none=True)
 async def cohort_define(
     body: CohortDefineRequest,
     request: Request,

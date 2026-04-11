@@ -19,3 +19,11 @@ def get_session_factory():
     if _session_factory is None:
         _session_factory = sessionmaker(get_engine(), class_=AsyncSession, expire_on_commit=False)
     return _session_factory
+
+
+async def close_engine() -> None:
+    global _engine, _session_factory
+    if _engine is not None:
+        await _engine.dispose()
+        _engine = None
+        _session_factory = None

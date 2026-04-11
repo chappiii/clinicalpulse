@@ -5,6 +5,7 @@ import structlog
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
+from clinicalpulse.api.deps import close_redis
 from clinicalpulse.api.routes import cohort, health, labs, patient
 from clinicalpulse.core.exceptions import (
     CohortNotFoundError,
@@ -13,6 +14,7 @@ from clinicalpulse.core.exceptions import (
 )
 from clinicalpulse.core.logging import setup_logging
 from clinicalpulse.core.state import set_start_time
+from clinicalpulse.db.session import close_engine
 
 logger = structlog.stdlib.get_logger()
 
@@ -23,6 +25,8 @@ async def lifespan(app: FastAPI):
     set_start_time()
     logger.info("app_started")
     yield
+    await close_redis()
+    await close_engine()
     logger.info("app_shutdown")
 
 
