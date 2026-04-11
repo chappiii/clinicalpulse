@@ -4,13 +4,13 @@ import redis.asyncio as redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from clinicalpulse.core.config import settings
-from clinicalpulse.db.session import async_session_factory
+from clinicalpulse.db.session import get_session_factory
 
 _redis_pool: redis.Redis | None = None
 
 
 async def get_db() -> AsyncGenerator[AsyncSession]:
-    async with async_session_factory() as session:
+    async with get_session_factory()() as session:
         yield session
 
 
